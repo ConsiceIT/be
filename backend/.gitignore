@@ -13,15 +13,3 @@ dist-ssr
 *.local
 coverage/
 .env
-
-
-# Editor directories and files
-.vscode/settings.json
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

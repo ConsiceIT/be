@@ -1,8 +1,10 @@
+// eslint.config.js
 import eslintRecommended from '@eslint/js'
-import eslintConfigPrettier from 'eslint-config-prettier' // 👈 add this
+import eslintConfigPrettier from 'eslint-config-prettier'
 import importPlugin from 'eslint-plugin-import'
 import prettierPlugin from 'eslint-plugin-prettier'
 import tseslint from 'typescript-eslint'
+import { URL } from 'url'
 
 export default [
 	{
@@ -12,12 +14,14 @@ export default [
 	eslintRecommended.configs.recommended,
 	...tseslint.configs.recommended,
 
+	// Type-checked rules
 	{
 		files: ['**/*.ts', '**/*.tsx'],
 		languageOptions: {
 			parser: tseslint.parser,
 			parserOptions: {
-				project: './tsconfig.json'
+				project: './tsconfig.json',
+				tsconfigRootDir: new URL('./backend', import.meta.url)
 			}
 		},
 		rules: {
@@ -25,6 +29,7 @@ export default [
 		}
 	},
 
+	// Additional rules and plugins
 	{
 		files: ['**/*.ts', '**/*.tsx'],
 		languageOptions: {
@@ -32,7 +37,8 @@ export default [
 			ecmaVersion: 'latest',
 			sourceType: 'module',
 			parserOptions: {
-				project: './tsconfig.json'
+				project: './tsconfig.json',
+				tsconfigRootDir: new URL('./backend', import.meta.url) 
 			}
 		},
 		plugins: {

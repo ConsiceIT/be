@@ -1,60 +1,45 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import compression from 'compression'
-import express, { type Application } from 'express'
+import express from 'express'
 import rateLimit from 'express-rate-limit'
 import fs from 'fs'
 import path from 'path'
+import { envs } from './core/config/env'
 import { ONE_HUNDRED, ONE_THOUSAND, SIXTY } from './core/constants'
 import { swaggerSpec, swaggerUi } from './swagger'
 
-interface ServerOptions {
-	port: number
-	apiPrefix: string
-}
+export const server = async (): Promise<void> => {
+	const app = express()
 
-export class Server {
-	private readonly app: Application
-	private readonly port: number
-	private readonly apiPrefix: string
+	//* Middlewares
+	app.use(express.json()) // Parse JSON
+	app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
+	app.use(compression()) // Compress responses
 
-	constructor(options: ServerOptions) {
-		const { port, apiPrefix } = options
-		this.port = port
-		this.apiPrefix = apiPrefix
-		this.app = express()
-	}
+	// Rate limit
+	app.use(
+		rateLimit({
+			max: ONE_HUNDRED,
+			windowMs: SIXTY * SIXTY * ONE_THOUSAND, // 1 hour
+			message: 'Too many requests from this IP, please try again in one hour'
+		})
+	)
 
-	async start(): Promise<void> {
-		//* Middlewares
-		this.app.use(express.json()) // Parse JSON
-		this.app.use(express.urlencoded({ extended: true })) // Parse URL-encoded
-		this.app.use(compression()) // Compress responses
-
-		// Rate limit
-		this.app.use(
-			rateLimit({
-				max: ONE_HUNDRED,
-				windowMs: SIXTY * SIXTY * ONE_THOUSAND, // 1 hour
-				message: 'Too many requests from this IP, please try again in one hour'
-			})
-		)
-
-		// Dynamically load all route files from ./src/routes
-		const routesPath = path.join(__dirname, 'routes')
-		fs.readdirSync(routesPath).forEach((file) => {
-			if (file.endsWith('.ts')) {
-				const route = require(path.join(routesPath, file)).default
-				if (route) {
-					this.app.use(this.apiPrefix, route)
-				}
+	// Dynamically load all route files from ./src/routes
+	const routesPath = path.join(__dirname, 'routes')
+	fs.readdirSync(routesPath).forEach((file) => {
+		if (file.endsWith('.ts')) {
+			const route = require(path.join(routesPath, file)).default
+			if (route) {
+				app.use(envs.API_PREFIX, route)
 			}
-		})
+		}
+	})
 
-		this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+	if (envs.NODE_ENV === 'dev') app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-		//* Start server
-		this.app.listen(this.port, () => {
-			console.log(`Server running on port ${this.port}...`)
-		})
-	}
+	//* Start server
+	app.listen(envs.PORT, () => {
+		console.log(`Server running on port ${envs.PORT}...`)
+	})
 }
